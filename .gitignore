@@ -1,0 +1,20 @@
+.flowise/
+# VS Code
+.vscode/
+
+# Jupyter Checkpoints
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+
+docker-compose.override.yml
+.Trash-0/

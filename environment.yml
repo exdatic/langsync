@@ -1,0 +1,14 @@
+channels:
+  - conda-forge
+  - anaconda
+dependencies:
+  - elasticsearch
+  - fastapi
+  - langchain
+  - loguru
+  - openai
+  - pydantic
+  - python-multipart
+  - uvicorn[standard]
+  - pip:
+    - tiktoken
