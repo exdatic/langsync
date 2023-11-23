@@ -65,11 +65,11 @@ def sync(
 
     # fix https://github.com/langchain-ai/langchain/issues/4575
     if os.environ.get("OPENAI_API_TYPE") == "azure":
-        chunk_size = 16
+        embedding_chunk_size = 16
     else:
-        chunk_size = 1000
+        embedding_chunk_size = 1000
 
-    embedding = OpenAIEmbeddings(chunk_size=chunk_size)  # type: ignore
+    embedding = OpenAIEmbeddings(chunk_size=embedding_chunk_size, max_retries=100)  # type: ignore
 
     es = Elasticsearch(es_url, timeout=timeout)
     es_store = ElasticsearchStore(real_index_name,
