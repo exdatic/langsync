@@ -52,7 +52,7 @@ def sync(
             raise HTTPException(400, detail="JSON lines entry must contain 'source' field containing the source url")
         if "title" not in doc:
             raise HTTPException(400, detail="JSON lines entry must contain 'title' field containing the title")
-        texts.append("\n\n".join([doc["title"], doc["content"]))
+        texts.append("\n\n".join([doc["title"], doc["content"]]))
         metadatas.append({"source": doc["source"], "title": doc["title"]})
 
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
