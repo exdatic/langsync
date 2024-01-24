@@ -4,7 +4,9 @@ import os
 
 from elasticsearch import Elasticsearch
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from langchain.embeddings import CacheBackedEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.storage import LocalFileStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import ElasticsearchStore
 from loguru import logger
@@ -70,10 +72,11 @@ def sync(
         embedding_chunk_size = 1000
 
     embedding = OpenAIEmbeddings(chunk_size=embedding_chunk_size, max_retries=100)  # type: ignore
-
+    fs = LocalFileStore("/cache/")
+    cached_embedder = CacheBackedEmbeddings.from_bytes_store(embedding, fs, namespace=index_name)
     es = Elasticsearch(es_url, timeout=timeout)
     es_store = ElasticsearchStore(real_index_name,
-                                  embedding=embedding,
+                                  embedding=cached_embedder,
                                   es_connection=es,
                                   vector_query_field=vector_query_field,
                                   query_field=query_field)
