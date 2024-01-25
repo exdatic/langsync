@@ -4,11 +4,12 @@ channels:
 dependencies:
   - elasticsearch
   - fastapi
-  - langchain
   - loguru
-  - openai
   - pydantic
   - python-multipart
   - uvicorn[standard]
   - pip:
-    - tiktoken
+    - langchain==0.1.3
+    - langchain-community==0.0.15
+    - langchain-openai==0.0.3
+    - tiktoken==0.5.2

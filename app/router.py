@@ -5,10 +5,10 @@ import os
 from elasticsearch import Elasticsearch
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from langchain.embeddings import CacheBackedEmbeddings
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import ElasticsearchStore
+from langchain_community.vectorstores import ElasticsearchStore
+from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from loguru import logger
 
 
@@ -65,13 +65,11 @@ def sync(
     # temporal index name
     real_index_name = index_name + "-" + datetime.now().strftime("%Y%m%d%H%M%S%f")
 
-    # fix https://github.com/langchain-ai/langchain/issues/4575
     if os.environ.get("OPENAI_API_TYPE") == "azure":
-        embedding_chunk_size = 16
+        embedding = AzureOpenAIEmbeddings(max_retries=100, validate_base_url=False)
     else:
-        embedding_chunk_size = 1000
+        embedding = OpenAIEmbeddings(max_retries=100)
 
-    embedding = OpenAIEmbeddings(chunk_size=embedding_chunk_size, max_retries=100)  # type: ignore
     fs = LocalFileStore("/cache/")
     cached_embedder = CacheBackedEmbeddings.from_bytes_store(embedding, fs, namespace=index_name)
     es = Elasticsearch(es_url, timeout=timeout)
