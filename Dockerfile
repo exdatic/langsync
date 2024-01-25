@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1
-FROM condaforge/mambaforge:23.1.0-1
+FROM condaforge/mambaforge:23.11.0-0
 
 # install required packages with mamba
 RUN --mount=type=cache,mode=0755,target=/opt/conda/pkgs \
