@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+from typing import Annotated
 
 from elasticsearch import Elasticsearch
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -37,7 +38,8 @@ def publish_index(es: Elasticsearch, index_name: str, alias: str):
 @router.post("/sync", description="Update Elasticsearch index with data from JSON lines file")
 def sync(
     index_name: str,
-    jsonl_file: UploadFile = File(...),
+    jsonl_file: Annotated[list[UploadFile],
+                          File(description="JSON lines file containing 'content', 'source' and 'title' fields")],
     chunk_size: int = 1000,
     chunk_overlap: int = 100,
     vector_query_field: str = "embedding",
@@ -46,16 +48,20 @@ def sync(
 ):
     texts = []
     metadatas = []
-    for line in jsonl_file.file.readlines():
-        doc = json.loads(line)
-        if "content" not in doc:
-            raise HTTPException(400, detail="JSON lines entry must contain 'content' field containing the text")
-        if "source" not in doc:
-            raise HTTPException(400, detail="JSON lines entry must contain 'source' field containing the source url")
-        if "title" not in doc:
-            raise HTTPException(400, detail="JSON lines entry must contain 'title' field containing the title")
-        texts.append("\n\n".join([doc["title"], doc["content"]]))
-        metadatas.append({k: v for k, v in doc.items() if k not in ["content"]})
+    for upload_file in jsonl_file:
+        for line in upload_file.file.readlines():
+            doc = json.loads(line)
+            if "content" not in doc:
+                raise HTTPException(400, detail="JSON lines entry must contain 'content' field containing the text")
+            if "source" not in doc:
+                raise HTTPException(400, detail="JSON lines entry must contain 'source' field containing the source url")
+            if "title" not in doc:
+                raise HTTPException(400, detail="JSON lines entry must contain 'title' field containing the title")
+            texts.append("\n\n".join([doc["title"], doc["content"]]))
+            metadatas.append({k: v for k, v in doc.items() if k not in ["content"]})
+
+    if not texts:
+        raise HTTPException(400, detail="No content found in JSON lines file")
 
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap, encoding_name="cl100k_base")
