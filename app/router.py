@@ -21,12 +21,10 @@ def publish_index(es: Elasticsearch, index_name: str, alias: str):
     old_index_names = es.indices.get_alias(index=alias, ignore_unavailable=True)
     if old_index_names:
         old_index_name = next(iter(old_index_names.keys()))
-        es.indices.update_aliases(body={
-            "actions": [
-                {"remove": {"alias": alias, "index": old_index_name}},
-                {"add": {"alias": alias, "index": index_name}},
-            ]
-        })
+        es.indices.update_aliases(actions=[
+            {"remove": {"alias": alias, "index": old_index_name}},
+            {"add": {"alias": alias, "index": index_name}},
+        ])
         logger.info(f"Updated alias {alias} to {index_name}")
         es.indices.delete(index=old_index_name)
         logger.info(f"Deleted old index {old_index_name}")

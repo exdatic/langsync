@@ -2,7 +2,7 @@ channels:
   - conda-forge
   - anaconda
 dependencies:
-  - elasticsearch
+  - elasticsearch=8
   - fastapi
   - loguru
   - pydantic
