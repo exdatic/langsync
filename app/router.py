@@ -56,7 +56,9 @@ def sync(
             if "title" not in doc:
                 raise HTTPException(400, detail="JSON lines entry must contain 'title' field containing the title")
             texts.append("\n\n".join([doc["title"], doc["content"]]))
-            metadatas.append({k: v for k, v in doc.items() if k not in ["content"]})
+            metadata = {k: v for k, v in doc.items() if k not in ["content"]}
+            metadata["filename"] = upload_file.filename
+            metadatas.append(metadata)
 
     if not texts:
         raise HTTPException(400, detail="No content found in JSON lines file")
