@@ -72,7 +72,10 @@ def sync(
     real_index_name = index_name + "-" + datetime.now().strftime("%Y%m%d%H%M%S%f")
 
     if os.environ.get("OPENAI_API_TYPE") == "azure":
-        embedding = AzureOpenAIEmbeddings(max_retries=100, validate_base_url=False)
+        embedding = AzureOpenAIEmbeddings(max_retries=100,
+                                          azure_endpoint=os.environ.get("OPENAI_API_BASE",
+                                                                        os.environ.get("AZURE_OPENAI_ENDPOINT")),
+                                          validate_base_url=False)
     else:
         embedding = OpenAIEmbeddings(max_retries=100)
 
