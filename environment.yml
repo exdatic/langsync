@@ -12,4 +12,5 @@ dependencies:
     - langchain==0.1.3
     - langchain-community==0.0.15
     - langchain-openai==0.0.3
+    - ragas@git+https://github.com/exdatic/ragas.git@7eb8a0341b93ab3630e0585ef8cc957402aad8de
     - tiktoken==0.5.2
