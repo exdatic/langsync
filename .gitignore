@@ -18,3 +18,4 @@ __pycache__/
 
 docker-compose.override.yml
 .Trash-0/
+.DS_Store

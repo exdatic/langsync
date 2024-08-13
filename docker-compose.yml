@@ -11,9 +11,9 @@ services:
       - OPENAI_API_KEY=sk-xxx
       # or set azure variables
       # - OPENAI_API_TYPE=azure
-      # - OPENAI_API_KEY=xxx
-      # - OPENAI_API_BASE=https://xxx.openai.azure.com  # replace with your azure api url
-      # - OPENAI_API_VERSION=2023-05-15
+      # - AZURE_OPENAI_API_KEY=xyz
+      # - AZURE_OPENAI_ENDPOINT=https://example.openai.azure.com
+      # - OPENAI_API_VERSION=2024-02-15-preview
     volumes:
       - cache:/cache
     ports:
