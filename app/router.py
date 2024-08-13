@@ -58,7 +58,10 @@ async def sync(
         embedding = OpenAIEmbeddings(max_retries=100)
 
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=chunk_size, chunk_overlap=chunk_overlap, encoding_name="cl100k_base")
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n\n", "\n\n", "\n", " ", ""],
+        encoding_name="cl100k_base")
     chunks = text_splitter.create_documents(texts=texts, metadatas=metadatas)
     if add_titles_to_chunks:
         for c in chunks:
