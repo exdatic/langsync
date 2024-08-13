@@ -4,7 +4,7 @@ import os
 from typing import Annotated
 
 from elasticsearch import Elasticsearch
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -15,11 +15,6 @@ from loguru import logger
 
 router = APIRouter(tags=["API"])
 es_url = os.environ.get("ES_URL", "http://elasticsearch:9200")
-
-if os.environ.get("OPENAI_API_TYPE") == "azure":
-    embedding = AzureOpenAIEmbeddings(model='text-embedding-3-large', max_retries=100, validate_base_url=False)
-else:
-    embedding = OpenAIEmbeddings(max_retries=100)
 
 
 def publish_index(es: Elasticsearch, index_name: str, alias: str):
@@ -39,12 +34,14 @@ def publish_index(es: Elasticsearch, index_name: str, alias: str):
 
 
 @router.post("/sync", description="Update Elasticsearch index with data from JSON lines file")
-def sync(
+async def sync(
     index_name: str,
     jsonl_file: Annotated[list[UploadFile],
                           File(description="JSON lines file containing 'content', 'source' and 'title' fields")],
+    background_tasks: BackgroundTasks,
     chunk_size: int = 1000,
     chunk_overlap: int = 100,
+    batch_size: int = 256,
     add_titles_to_chunks: bool = True,
     vector_query_field: str = "embedding",
     query_field: str = "text",
@@ -54,6 +51,11 @@ def sync(
 
     if not texts:
         raise HTTPException(400, detail="No content found in JSON lines file")
+    
+    if os.environ.get("OPENAI_API_TYPE") == "azure":
+        embedding = AzureOpenAIEmbeddings(model='text-embedding-3-large', max_retries=100, chunk_size=batch_size)
+    else:
+        embedding = OpenAIEmbeddings(max_retries=100)
 
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap, encoding_name="cl100k_base")
@@ -74,10 +76,15 @@ def sync(
                                   es_connection=es,
                                   vector_query_field=vector_query_field,
                                   query_field=query_field)
-    es_store.add_documents(chunks)
-    logger.info(f"Indexed {len(chunks)} chunks")
-    publish_index(es, real_index_name, index_name)
-    return "Updated data"
+    logger.info(f"Indexing {len(chunks)} text chunks in batches of {batch_size}")
+
+    async def index_chunks(chunks):
+        await es_store.aadd_documents(chunks, batch_size=batch_size)
+        logger.info(f"Indexed {len(chunks)} chunks")
+        publish_index(es, real_index_name, index_name)
+
+    background_tasks.add_task(index_chunks, chunks)
+    return f"Updating {len(chunks)} text chunks in background"
 
 
 def load_files(jsonl_file):
