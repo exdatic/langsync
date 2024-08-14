@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+import time
 from typing import Annotated
 
 from elasticsearch import Elasticsearch
@@ -79,11 +80,20 @@ async def sync(
                                   es_connection=es,
                                   vector_query_field=vector_query_field,
                                   query_field=query_field)
+
     logger.info(f"Indexing {len(chunks)} text chunks in batches of {batch_size}")
 
     async def index_chunks(chunks):
-        await es_store.aadd_documents(chunks, batch_size=batch_size)
-        logger.info(f"Indexed {len(chunks)} chunks")
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i:i + batch_size]
+            try:
+                await es_store.aadd_documents(batch)
+            except Exception as e:
+                logger.error(f"Failed to index batch {i}-{i + batch_size}: {e}")
+                logger.info("Sleeping for 1 minute")
+                time.sleep(60)
+            logger.info(f"Indexed {len(batch)} text chunks")
+        logger.info(f"Indexed all {len(chunks)} chunks")
         publish_index(es, real_index_name, index_name)
 
     background_tasks.add_task(index_chunks, chunks)
