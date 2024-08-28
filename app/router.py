@@ -63,10 +63,12 @@ async def sync(
         chunk_overlap=chunk_overlap,
         separators=["\n\n\n", "\n\n", "\n", " ", ""],
         encoding_name="cl100k_base")
+
     chunks = text_splitter.create_documents(texts=texts, metadatas=metadatas)
     if add_titles_to_chunks:
         for c in chunks:
             c.page_content = c.metadata['title'] + "\n\n" + c.page_content
+
     logger.info(f"Split into {len(chunks)} chunks")
 
     # temporal index name
