@@ -42,6 +42,8 @@ async def sync(
     background_tasks: BackgroundTasks,
     chunk_size: int = 1000,
     chunk_overlap: int = 100,
+    max_chunk_chars: int = 8000,
+    min_chunk_chars: int = 100,
     batch_size: int = 256,
     add_titles_to_chunks: bool = True,
     vector_query_field: str = "embedding",
@@ -58,18 +60,35 @@ async def sync(
     else:
         embedding = OpenAIEmbeddings(max_retries=100)
 
-    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+    page_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=chunk_size,
+        separators=["\n\n\n"],
+        encoding_name="cl100k_base")
+
+    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        chunk_size=1000,
         chunk_overlap=chunk_overlap,
         separators=["\n\n\n", "\n\n", "\n", " ", ""],
         encoding_name="cl100k_base")
 
-    chunks = text_splitter.create_documents(texts=texts, metadatas=metadatas)
+    # first split into pages ("\n\n\n" is the separator for pages)
+    chunks = page_splitter.create_documents(texts=texts, metadatas=metadatas)
+    # then split large chunks into smaller chunks
+    chunks_new = []
+    for chunk in chunks:
+        if len(chunk.page_content) > max_chunk_chars:
+            logger.info(f"Splitting chunk of length {len(chunk.page_content)}")
+            chunk_split = text_splitter.split_documents([chunk])
+            logger.info(f"Split into {len(chunk_split)} chunks")
+            chunks_new.extend(chunk_split)
+        else:
+            chunks_new.append(chunk)
+    # remove chunks that are too small
+    chunks = [c for c in chunks_new if len(c.page_content) > min_chunk_chars]
+
     if add_titles_to_chunks:
         for c in chunks:
             c.page_content = c.metadata['title'] + "\n\n" + c.page_content
-
-    logger.info(f"Split into {len(chunks)} chunks")
 
     # temporal index name
     real_index_name = index_name + "-" + datetime.now().strftime("%Y%m%d%H%M%S%f")
